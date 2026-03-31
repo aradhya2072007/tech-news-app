@@ -1,0 +1,23 @@
+body {
+  font-family: Arial;
+  background: #111;
+  color: white;
+}
+
+#news-container {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
+  padding: 20px;
+}
+
+.card {
+  background: #222;
+  padding: 10px;
+  border-radius: 10px;
+}
+@media (max-width: 768px) {
+  #news-container {
+    grid-template-columns: 1fr;
+  }
+}

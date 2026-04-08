@@ -2,7 +2,24 @@
   --primary: #8a9a5b;
   --secondary: #e6dac3;
   --text-main: #3d3b38;
+  --text-muted: rgba(61, 59, 56, 0.7);
+  --bg-glass: rgba(245, 243, 237, 0.75);
+  --border-glass: rgba(138, 154, 91, 0.2);
+  --border-radius: 12px;
+  --font-body: 'Outfit', sans-serif;
+  --font-heading: 'Fraunces', serif;
 }
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
 body {
-  font-family: sans-serif;
+  font-family: var(--font-body);
+  color: var(--text-main);
+  min-height: 100vh;
+}
+
+.wrap {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 20px;
 }

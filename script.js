@@ -6,8 +6,12 @@ let searchQuery = "";
 let sourceFilter = "all";
 let sortMode = "default";
 
-// ✅ NEW (Commit 7)
+// ✅ favorites (Commit 7)
 let favorites = JSON.parse(localStorage.getItem("tnh_favorites") || "[]");
+
+// ✅ NEW (Commit 8)
+const ARTICLES_PER_PAGE = 9;
+let currentPage = 1;
 
 async function fetchNews() {
   const res = await fetch(API_URL);
@@ -17,7 +21,6 @@ async function fetchNews() {
     a => a.title && !a.title.includes("[Removed]") && a.url
   );
 
-  // populate sources
   const sources = [...new Set(allArticles.map(a => a.source?.name).filter(Boolean))].sort();
   const sourceSelect = document.getElementById("sourceSelect");
 
@@ -33,9 +36,13 @@ async function fetchNews() {
 
 function render() {
   const grid = document.getElementById("newsGrid");
-  grid.innerHTML = "";
+  const pag = document.getElementById("pagination");
 
-  allArticles
+  grid.innerHTML = "";
+  pag.innerHTML = "";
+
+  // ✅ filter + sort
+  const filtered = allArticles
     .filter(a => {
       if (!searchQuery) return true;
       return (a.title + (a.description || "")).toLowerCase().includes(searchQuery);
@@ -45,38 +52,59 @@ function render() {
       if (sortMode === "az") return a.title.localeCompare(b.title);
       if (sortMode === "za") return b.title.localeCompare(a.title);
       return new Date(b.publishedAt) - new Date(a.publishedAt);
-    })
-    .forEach(article => {
-      const card = document.createElement("div");
-
-      card.innerHTML = `
-        <h2>${article.title}</h2>
-        <p>${article.description || ""}</p>
-        <a href="${article.url}" target="_blank">Read more</a>
-
-        <!-- ✅ FAVORITE BUTTON -->
-        <button class="fav-btn" data-url="${article.url}">
-          ${favorites.includes(article.url) ? "★" : "☆"}
-        </button>
-      `;
-
-      // ✅ click handler
-      card.querySelector(".fav-btn").addEventListener("click", (e) => {
-        const url = e.target.dataset.url;
-
-        if (favorites.includes(url)) {
-          favorites = favorites.filter(u => u !== url);
-          e.target.textContent = "☆";
-        } else {
-          favorites.push(url);
-          e.target.textContent = "★";
-        }
-
-        localStorage.setItem("tnh_favorites", JSON.stringify(favorites));
-      });
-
-      grid.appendChild(card);
     });
+
+  // ✅ pagination logic
+  const pages = Math.ceil(filtered.length / ARTICLES_PER_PAGE);
+  const pageItems = filtered.slice(
+    (currentPage - 1) * ARTICLES_PER_PAGE,
+    currentPage * ARTICLES_PER_PAGE
+  );
+
+  // ✅ render cards
+  pageItems.forEach(article => {
+    const card = document.createElement("div");
+
+    card.innerHTML = `
+      <h2>${article.title}</h2>
+      <p>${article.description || ""}</p>
+      <a href="${article.url}" target="_blank">Read more</a>
+
+      <button class="fav-btn" data-url="${article.url}">
+        ${favorites.includes(article.url) ? "★" : "☆"}
+      </button>
+    `;
+
+    card.querySelector(".fav-btn").addEventListener("click", (e) => {
+      const url = e.target.dataset.url;
+
+      if (favorites.includes(url)) {
+        favorites = favorites.filter(u => u !== url);
+        e.target.textContent = "☆";
+      } else {
+        favorites.push(url);
+        e.target.textContent = "★";
+      }
+
+      localStorage.setItem("tnh_favorites", JSON.stringify(favorites));
+    });
+
+    grid.appendChild(card);
+  });
+
+  // ✅ pagination buttons
+  for (let i = 1; i <= pages; i++) {
+    const btn = document.createElement("button");
+    btn.textContent = i;
+    btn.disabled = i === currentPage;
+
+    btn.addEventListener("click", () => {
+      currentPage = i;
+      render();
+    });
+
+    pag.appendChild(btn);
+  }
 }
 
 // search
@@ -84,6 +112,7 @@ document.getElementById("searchInput").addEventListener("input", (e) => {
   clearTimeout(window._searchTimeout);
   window._searchTimeout = setTimeout(() => {
     searchQuery = e.target.value.trim().toLowerCase();
+    currentPage = 1; // reset page
     render();
   }, 300);
 });
@@ -91,12 +120,14 @@ document.getElementById("searchInput").addEventListener("input", (e) => {
 // source filter
 document.getElementById("sourceSelect").addEventListener("change", (e) => {
   sourceFilter = e.target.value;
+  currentPage = 1;
   render();
 });
 
 // sort
 document.getElementById("sortSelect").addEventListener("change", (e) => {
   sortMode = e.target.value;
+  currentPage = 1;
   render();
 });
 

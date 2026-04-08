@@ -6,13 +6,14 @@ let allArticles = [];
 async function fetchNews() {
   const res = await fetch(API_URL);
   const data = await res.json();
-  allArticles = data.articles.filter(a => a.title && a.url);
+  allArticles = data.articles.filter(a => a.title && !a.title.includes("[Removed]") && a.url);
   render();
 }
 
 function render() {
   const grid = document.getElementById("newsGrid");
   grid.innerHTML = "";
+
   allArticles.forEach(article => {
     const card = document.createElement("div");
     card.innerHTML = `

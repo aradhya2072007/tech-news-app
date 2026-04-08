@@ -14,9 +14,20 @@
   </header>
 
   <!-- ✅ ADD THIS -->
-  <section>
-    <input type="text" id="searchInput" placeholder="Search headlines..." />
-  </section>
+<section>
+  <input type="text" id="searchInput" placeholder="Search headlines..." />
+
+  <!-- ✅ ADD THESE -->
+  <select id="sourceSelect">
+    <option value="all">All Sources</option>
+  </select>
+
+  <select id="sortSelect">
+    <option value="default">Latest First</option>
+    <option value="az">A → Z</option>
+    <option value="za">Z → A</option>
+  </select>
+</section>
 
   <main id="newsGrid"></main>
 

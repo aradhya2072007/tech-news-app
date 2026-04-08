@@ -2,35 +2,45 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Tech News Hub</title>
 
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600&family=Fraunces:wght@400;800&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
+
+  <!-- HEADER -->
   <header>
     <h1>TechNewsHub</h1>
     <button id="themeBtn">Toggle Theme</button>
   </header>
 
-<section>
-  <input type="text" id="searchInput" placeholder="Search headlines..." />
+  <!-- CONTROLS -->
+  <section>
+    <input type="text" id="searchInput" placeholder="Search headlines..." />
 
-  <select id="sourceSelect">
-    <option value="all">All Sources</option>
-  </select>
+    <select id="sourceSelect">
+      <option value="all">All Sources</option>
+    </select>
 
-  <select id="sortSelect">
-    <option value="default">Latest First</option>
-    <option value="az">A → Z</option>
-    <option value="za">Z → A</option>
-  </select>
-</section>
+    <select id="sortSelect">
+      <option value="default">Latest First</option>
+      <option value="az">A → Z</option>
+      <option value="za">Z → A</option>
+    </select>
+  </section>
 
+  <!-- NEWS GRID -->
   <main id="newsGrid"></main>
+
+  <!-- PAGINATION -->
   <nav id="pagination"></nav>
 
+  <!-- FOOTER -->
+  <footer style="text-align:center;padding:20px;">
+    <p>© TechNewsHub</p>
+  </footer>
 
   <script src="script.js"></script>
 </body>

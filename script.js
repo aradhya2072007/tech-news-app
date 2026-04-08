@@ -3,9 +3,11 @@ const API_URL = `https://newsapi.org/v2/everything?q=technology&apiKey=${API_KEY
 
 let allArticles = [];
 let searchQuery = "";
-
 let sourceFilter = "all";
 let sortMode = "default";
+
+// ✅ NEW (Commit 7)
+let favorites = JSON.parse(localStorage.getItem("tnh_favorites") || "[]");
 
 async function fetchNews() {
   const res = await fetch(API_URL);
@@ -15,10 +17,10 @@ async function fetchNews() {
     a => a.title && !a.title.includes("[Removed]") && a.url
   );
 
-  // ✅ populate source dropdown
+  // populate sources
   const sources = [...new Set(allArticles.map(a => a.source?.name).filter(Boolean))].sort();
-
   const sourceSelect = document.getElementById("sourceSelect");
+
   sources.forEach(src => {
     const opt = document.createElement("option");
     opt.value = src;
@@ -34,22 +36,16 @@ function render() {
   grid.innerHTML = "";
 
   allArticles
-    // search filter
     .filter(a => {
       if (!searchQuery) return true;
       return (a.title + (a.description || "")).toLowerCase().includes(searchQuery);
     })
-
-    // ✅ source filter
     .filter(a => sourceFilter === "all" || a.source?.name === sourceFilter)
-
-    // ✅ sorting
     .sort((a, b) => {
       if (sortMode === "az") return a.title.localeCompare(b.title);
       if (sortMode === "za") return b.title.localeCompare(a.title);
       return new Date(b.publishedAt) - new Date(a.publishedAt);
     })
-
     .forEach(article => {
       const card = document.createElement("div");
 
@@ -57,29 +53,48 @@ function render() {
         <h2>${article.title}</h2>
         <p>${article.description || ""}</p>
         <a href="${article.url}" target="_blank">Read more</a>
+
+        <!-- ✅ FAVORITE BUTTON -->
+        <button class="fav-btn" data-url="${article.url}">
+          ${favorites.includes(article.url) ? "★" : "☆"}
+        </button>
       `;
+
+      // ✅ click handler
+      card.querySelector(".fav-btn").addEventListener("click", (e) => {
+        const url = e.target.dataset.url;
+
+        if (favorites.includes(url)) {
+          favorites = favorites.filter(u => u !== url);
+          e.target.textContent = "☆";
+        } else {
+          favorites.push(url);
+          e.target.textContent = "★";
+        }
+
+        localStorage.setItem("tnh_favorites", JSON.stringify(favorites));
+      });
 
       grid.appendChild(card);
     });
 }
 
-// search input (debounce)
+// search
 document.getElementById("searchInput").addEventListener("input", (e) => {
   clearTimeout(window._searchTimeout);
-
   window._searchTimeout = setTimeout(() => {
     searchQuery = e.target.value.trim().toLowerCase();
     render();
   }, 300);
 });
 
-// ✅ source filter listener
+// source filter
 document.getElementById("sourceSelect").addEventListener("change", (e) => {
   sourceFilter = e.target.value;
   render();
 });
 
-// ✅ sort listener
+// sort
 document.getElementById("sortSelect").addEventListener("change", (e) => {
   sortMode = e.target.value;
   render();

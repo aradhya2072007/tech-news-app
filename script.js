@@ -6,10 +6,10 @@ let searchQuery = "";
 let sourceFilter = "all";
 let sortMode = "default";
 
-// ✅ favorites (Commit 7)
+// favorites
 let favorites = JSON.parse(localStorage.getItem("tnh_favorites") || "[]");
 
-// ✅ NEW (Commit 8)
+// pagination
 const ARTICLES_PER_PAGE = 9;
 let currentPage = 1;
 
@@ -41,7 +41,6 @@ function render() {
   grid.innerHTML = "";
   pag.innerHTML = "";
 
-  // ✅ filter + sort
   const filtered = allArticles
     .filter(a => {
       if (!searchQuery) return true;
@@ -54,25 +53,38 @@ function render() {
       return new Date(b.publishedAt) - new Date(a.publishedAt);
     });
 
-  // ✅ pagination logic
   const pages = Math.ceil(filtered.length / ARTICLES_PER_PAGE);
   const pageItems = filtered.slice(
     (currentPage - 1) * ARTICLES_PER_PAGE,
     currentPage * ARTICLES_PER_PAGE
   );
 
-  // ✅ render cards
+  // ✅ UPDATED CARD UI (Commit 10)
   pageItems.forEach(article => {
     const card = document.createElement("div");
+    card.className = "card";
 
     card.innerHTML = `
-      <h2>${article.title}</h2>
-      <p>${article.description || ""}</p>
-      <a href="${article.url}" target="_blank">Read more</a>
+      <div class="card-img-wrap">
+        ${
+          article.urlToImage
+            ? `<img src="${article.urlToImage}" alt="${article.title}" />`
+            : ""
+        }
+      </div>
 
-      <button class="fav-btn" data-url="${article.url}">
-        ${favorites.includes(article.url) ? "★" : "☆"}
-      </button>
+      <div class="card-body">
+        <h2 class="card-title">${article.title}</h2>
+        <p class="card-desc">${article.description || ""}</p>
+      </div>
+
+      <div class="card-footer">
+        <a href="${article.url}" target="_blank">Read more</a>
+
+        <button class="fav-btn" data-url="${article.url}">
+          ${favorites.includes(article.url) ? "★" : "☆"}
+        </button>
+      </div>
     `;
 
     card.querySelector(".fav-btn").addEventListener("click", (e) => {
@@ -92,7 +104,7 @@ function render() {
     grid.appendChild(card);
   });
 
-  // ✅ pagination buttons
+  // pagination buttons
   for (let i = 1; i <= pages; i++) {
     const btn = document.createElement("button");
     btn.textContent = i;
@@ -112,7 +124,7 @@ document.getElementById("searchInput").addEventListener("input", (e) => {
   clearTimeout(window._searchTimeout);
   window._searchTimeout = setTimeout(() => {
     searchQuery = e.target.value.trim().toLowerCase();
-    currentPage = 1; // reset page
+    currentPage = 1;
     render();
   }, 300);
 });

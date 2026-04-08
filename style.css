@@ -30,7 +30,8 @@
 body {
   font-family: var(--font-body);
   color: var(--text-main);
-  background: url('background\ paper\ img.jpg') center/cover fixed;
+  background: url('background.jpg') center/cover fixed;
+
   min-height: 100vh;
   line-height: 1.5;
 }

@@ -1,17 +1,149 @@
 <!DOCTYPE html>
-<html>
+<html lang="en" data-theme="dark">
+
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Tech News Hub</title>
-  <link rel="stylesheet" href="style.css">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TechNewsHub</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,600;0,9..144,800;1,9..144,300;1,9..144,600&family=Outfit:wght@300;400;500;600&display=swap"
+    rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
 </head>
+
 <body>
 
-  <h1>Tech News Hub</h1>
+  <!-- SPLASH -->
+  <div class="splash" id="splash">
+    <div class="splash-inner">
+      <div class="splash-logo">Tech<em>News</em>Hub</div>
+      <div class="splash-bar">
+        <div class="splash-fill" id="splashFill"></div>
+      </div>
+      <p class="splash-label" id="splashLabel">Initialising…</p>
+    </div>
+  </div>
 
-  <div id="news-container"></div>
+  <!-- HEADER -->
+  <header class="header">
+    <div class="wrap header-content">
+      <div class="header-left">
+        <div class="live-dot"></div>
+        <span class="header-date" id="headerDate"></span>
+      </div>
+      <div class="header-center">
+        <div class="masthead-line"></div>
+        <div class="masthead-text">
+          <span class="masthead-pre">The</span>
+          <h1 class="masthead-title">Tech<em>News</em>Hub</h1>
+          <span class="masthead-post">Daily</span>
+        </div>
+        <div class="masthead-line"></div>
+      </div>
+      <div class="header-right">
+        <span class="header-count" id="headerCount"></span>
+        <button class="icon-btn" id="themeBtn" title="Toggle theme">
+          <svg class="sun-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
+            <circle cx="12" cy="12" r="4.5" />
+            <path
+              d="M12 2v2.5M12 19.5V22M4.22 4.22l1.77 1.77M18.01 18.01l1.77 1.77M2 12h2.5M19.5 12H22M4.22 19.78l1.77-1.77M18.01 5.99l1.77-1.77" />
+          </svg>
+          <svg class="moon-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
+            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+          </svg>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- CONTROLS -->
+  <section class="controls-section">
+    <div class="wrap">
+      <div class="controls-bar">
+        <div class="search-box">
+          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8">
+            <circle cx="9" cy="9" r="6" />
+            <path d="m15.5 15.5-3.2-3.2" />
+          </svg>
+          <input type="text" id="searchInput" placeholder="Search headlines, sources, topics…" autocomplete="off"
+            spellcheck="false" />
+          <button class="search-clear" id="searchClear" aria-label="Clear search">
+            <svg viewBox="0 0 20 20" fill="currentColor">
+              <path
+                d="M6.28 5.22a.75.75 0 0 0-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 1 0 1.06 1.06L10 11.06l3.72 3.72a.75.75 0 1 0 1.06-1.06L11.06 10l3.72-3.72a.75.75 0 0 0-1.06-1.06L10 8.94 6.28 5.22Z" />
+            </svg>
+          </button>
+        </div>
+        <div class="filter-group">
+          <div class="select-wrap">
+            <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6">
+              <path d="M3 5h14M6 10h8M9 15h2" />
+            </svg>
+            <select id="sourceSelect">
+              <option value="all">All Sources</option>
+            </select>
+          </div>
+          <div class="select-wrap">
+            <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6">
+              <path d="M10 3v14M5 8l5-5 5 5" />
+            </svg>
+            <select id="sortSelect">
+              <option value="default">Latest First</option>
+              <option value="az">Title A → Z</option>
+              <option value="za">Title Z → A</option>
+              <option value="favs">Saved First</option>
+            </select>
+          </div>
+          <button class="toggle-btn" id="savedBtn">
+            <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8">
+              <path d="M5 3h10a1 1 0 0 1 1 1v13l-6-4-6 4V4a1 1 0 0 1 1-1z" />
+            </svg>
+            <span>Saved</span>
+            <span class="saved-badge" id="savedBadge">0</span>
+          </button>
+        </div>
+      </div>
+      <div class="chips-row" id="chipsRow"></div>
+    </div>
+  </section>
+
+  <!-- MAIN -->
+  <main class="main-wrap">
+    <div class="wrap">
+      <div class="results-meta" id="resultsMeta"></div>
+      <div class="news-grid" id="newsGrid"></div>
+      <div class="skeleton-grid hidden" id="skeletonGrid">
+        <div class="skel-card"></div>
+        <div class="skel-card"></div>
+        <div class="skel-card"></div>
+        <div class="skel-card"></div>
+        <div class="skel-card"></div>
+        <div class="skel-card"></div>
+      </div>
+      <div class="empty-state hidden" id="emptyState">
+        <div class="empty-glyph">∅</div>
+        <h3 class="empty-title">No stories match</h3>
+        <p class="empty-sub">Try different keywords or clear your filters</p>
+        <button class="cta-btn" onclick="resetAll()">Reset filters</button>
+      </div>
+      <nav class="pagination" id="pagination" aria-label="Pagination"></nav>
+    </div>
+  </main>
+
+  <!-- FOOTER -->
+  <footer class="footer">
+    <div class="wrap footer-inner">
+      <span class="footer-brand">TechNewsHub</span>
+      <span class="footer-divider">·</span>
+      <span>Powered by NewsAPI</span>
+      <span class="footer-divider">·</span>
+      <span id="footerYear"></span>
+    </div>
+  </footer>
 
   <script src="script.js"></script>
 </body>
+
 </html>

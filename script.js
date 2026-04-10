@@ -59,6 +59,49 @@ function updateSplash(percent, label) {
   if (splashLabel) splashLabel.textContent = label;
 }
 
+// ── DOM REFS ──
+const splash = document.getElementById("splash");
+const splashFill = document.getElementById("splashFill");
+const splashLabel = document.getElementById("splashLabel");
+const newsGrid = document.getElementById("newsGrid");
+const skeletonGrid = document.getElementById("skeletonGrid");
+const emptyState = document.getElementById("emptyState");
+const pagination = document.getElementById("pagination");
+const resultsMeta = document.getElementById("resultsMeta");
+const chipsRow = document.getElementById("chipsRow");
+const searchInput = document.getElementById("searchInput");
+const searchClear = document.getElementById("searchClear");
+const sortSelect = document.getElementById("sortSelect");
+const sourceSelect = document.getElementById("sourceSelect");
+const savedBtn = document.getElementById("savedBtn");
+const savedBadge = document.getElementById("savedBadge");
+const headerCount = document.getElementById("headerCount");
+const themeBtn = document.getElementById("themeBtn");
+
+// ── THEME ──
+const savedTheme = localStorage.getItem("tnh_theme") || "dark";
+document.documentElement.dataset.theme = savedTheme;
+
+themeBtn.addEventListener("click", () => {
+  const next = document.documentElement.dataset.theme === "dark" ? "light" : "dark";
+  document.documentElement.dataset.theme = next;
+  localStorage.setItem("tnh_theme", next);
+});
+
+// ── DATE ──
+const today = new Date();
+document.getElementById("headerDate").textContent = today.toLocaleDateString("en-US", {
+  weekday: "short", month: "short", day: "numeric", year: "numeric"
+});
+document.getElementById("footerYear").textContent = today.getFullYear();
+
+// ── SPLASH ──
+function updateSplash(percent, label) {
+  splashFill.style.width = percent + "%";
+  splashLabel.textContent = label;
+}
+
+// ── FETCH ──
 async function fetchNews() {
   skeletonGrid.classList.remove("hidden");
   newsGrid.classList.add("hidden");

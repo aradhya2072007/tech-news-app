@@ -5,9 +5,12 @@ This is a web application that displays latest technology news using News API.
 
 ## Features
 - Search news articles
+- Live tech headlines
 - Filter by category
 - Sort articles
 - Save articles for later
+- Dark/light mode
+- Pagination
 
 ## Technologies Used
 - HTML

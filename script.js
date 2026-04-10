@@ -6,32 +6,32 @@ const API_URL = "https://newsapi.org/v2/everything?q=technology&apiKey=" + API_K
 const ARTICLES_PER_PAGE = 9;
 
 // ── STATE ──
-let allArticles  = [];
-let favorites    = JSON.parse(localStorage.getItem("tnh_favorites") || "[]");
-let searchQuery  = "";
-let sortMode     = "default";
+let allArticles = [];
+let favorites = JSON.parse(localStorage.getItem("tnh_favorites") || "[]");
+let searchQuery = "";
+let sortMode = "default";
 let sourceFilter = "all";
 let showSavedOnly = false;
-let currentPage  = 1;
+let currentPage = 1;
 
 // ── DOM REFS ──
-const splash      = document.getElementById("splash");
-const splashFill  = document.getElementById("splashFill");
+const splash = document.getElementById("splash");
+const splashFill = document.getElementById("splashFill");
 const splashLabel = document.getElementById("splashLabel");
-const newsGrid    = document.getElementById("newsGrid");
-const skeletonGrid= document.getElementById("skeletonGrid");
-const emptyState  = document.getElementById("emptyState");
-const pagination  = document.getElementById("pagination");
+const newsGrid = document.getElementById("newsGrid");
+const skeletonGrid = document.getElementById("skeletonGrid");
+const emptyState = document.getElementById("emptyState");
+const pagination = document.getElementById("pagination");
 const resultsMeta = document.getElementById("resultsMeta");
-const chipsRow    = document.getElementById("chipsRow");
+const chipsRow = document.getElementById("chipsRow");
 const searchInput = document.getElementById("searchInput");
 const searchClear = document.getElementById("searchClear");
-const sortSelect  = document.getElementById("sortSelect");
-const sourceSelect= document.getElementById("sourceSelect");
-const savedBtn    = document.getElementById("savedBtn");
-const savedBadge  = document.getElementById("savedBadge");
+const sortSelect = document.getElementById("sortSelect");
+const sourceSelect = document.getElementById("sourceSelect");
+const savedBtn = document.getElementById("savedBtn");
+const savedBadge = document.getElementById("savedBadge");
 const headerCount = document.getElementById("headerCount");
-const themeBtn    = document.getElementById("themeBtn");
+const themeBtn = document.getElementById("themeBtn");
 
 // ── THEME ──
 const savedTheme = localStorage.getItem("tnh_theme") || "dark";
@@ -64,7 +64,7 @@ async function fetchNews() {
 
   try {
     updateSplash(50, "Fetching stories...");
-    const res  = await fetch(API_URL);
+    const res = await fetch(API_URL);
     updateSplash(75, "Parsing data...");
     const data = await res.json();
 
@@ -137,7 +137,7 @@ searchClear.addEventListener("click", () => {
 });
 
 // ── SORT / FILTER / SAVED ──
-sortSelect.addEventListener("change",   e => { sortMode     = e.target.value; currentPage = 1; render(); });
+sortSelect.addEventListener("change", e => { sortMode = e.target.value; currentPage = 1; render(); });
 sourceSelect.addEventListener("change", e => { sourceFilter = e.target.value; currentPage = 1; render(); });
 
 savedBtn.addEventListener("click", () => {
@@ -180,8 +180,8 @@ function getFilteredArticles() {
 // ── RENDER ──
 function render() {
   const filtered = getFilteredArticles();
-  const total    = filtered.length;
-  const pages    = Math.max(1, Math.ceil(total / ARTICLES_PER_PAGE));
+  const total = filtered.length;
+  const pages = Math.max(1, Math.ceil(total / ARTICLES_PER_PAGE));
 
   if (currentPage > pages) currentPage = pages;
 
@@ -213,7 +213,7 @@ function render() {
 function renderMeta(total, pages) {
   if (total === 0) { resultsMeta.innerHTML = ""; return; }
   const start = (currentPage - 1) * ARTICLES_PER_PAGE + 1;
-  const end   = Math.min(currentPage * ARTICLES_PER_PAGE, total);
+  const end = Math.min(currentPage * ARTICLES_PER_PAGE, total);
   resultsMeta.innerHTML =
     `<span>${total} stories found</span>` +
     `<span>Showing ${start}–${end} · Page ${currentPage} of ${pages}</span>`;
@@ -257,14 +257,14 @@ function renderChips() {
 
 // ── BUILD CARD ──
 function buildCard(article) {
-  const card   = document.createElement("div");
+  const card = document.createElement("div");
   card.className = "card";
 
-  const isFav  = favorites.includes(article.url);
-  const src    = article.source?.name || "Unknown";
-  const desc   = article.description || "No description available.";
-  const dateStr= article.publishedAt
-    ? new Date(article.publishedAt).toLocaleDateString("en-US", { month:"short", day:"numeric", year:"numeric" })
+  const isFav = favorites.includes(article.url);
+  const src = article.source?.name || "Unknown";
+  const desc = article.description || "No description available.";
+  const dateStr = article.publishedAt
+    ? new Date(article.publishedAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
     : "";
 
   const imgHTML = article.urlToImage
@@ -345,13 +345,13 @@ function renderPagination(pages) {
 // ── RESET ALL ──
 window.resetAll = function () {
   searchInput.value = "";
-  searchQuery   = "";
-  sortMode      = "default";
-  sourceFilter  = "all";
+  searchQuery = "";
+  sortMode = "default";
+  sourceFilter = "all";
   showSavedOnly = false;
-  currentPage   = 1;
+  currentPage = 1;
   searchClear.classList.remove("visible");
-  sortSelect.value   = "default";
+  sortSelect.value = "default";
   sourceSelect.value = "all";
   savedBtn.classList.remove("active");
   render();

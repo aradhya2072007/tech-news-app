@@ -1,9 +1,16 @@
 "use strict";
 
-// Google News RSS via rss2json — free, no API key, works on all domains
-const API_URL = `https://api.rss2json.com/v1/api.json?rss_url=https%3A%2F%2Fnews.google.com%2Frss%2Fsearch%3Fq%3Dtechnology%26hl%3Den-US%26gl%3DUS%26ceid%3DUS%3Aen`;
+// ── RSS FEEDS with confirmed image support ──
+const RSS_FEEDS = [
+  { url: "https://www.wired.com/feed/rss",         name: "Wired" },
+  { url: "https://venturebeat.com/feed/",           name: "VentureBeat" },
+  { url: "https://techcrunch.com/feed/",            name: "TechCrunch" },
+  { url: "https://www.engadget.com/rss.xml",        name: "Engadget" },
+];
+const RSS2JSON = "https://api.rss2json.com/v1/api.json?rss_url=";
 const ARTICLES_PER_PAGE = 9;
 
+// ── STORAGE ──
 const ls = {
   get: (key, fallback) => {
     try { return JSON.parse(localStorage.getItem(key)) ?? fallback; }
@@ -14,129 +21,113 @@ const ls = {
   }
 };
 
+// ── STATE ──
 let allArticles = [];
-let favorites = ls.get("tnh_favorites", []);
+let favorites   = ls.get("tnh_favorites", []);
 let searchQuery = "";
-let sortMode = "default";
+let sortMode    = "default";
 let sourceFilter = "all";
 let showSavedOnly = false;
 let currentPage = 1;
 
-const splash = document.getElementById("splash");
-const splashFill = document.getElementById("splashFill");
+// ── DOM REFS ──
+const splash      = document.getElementById("splash");
+const splashFill  = document.getElementById("splashFill");
 const splashLabel = document.getElementById("splashLabel");
-const newsGrid = document.getElementById("newsGrid");
+const newsGrid    = document.getElementById("newsGrid");
 const skeletonGrid = document.getElementById("skeletonGrid");
-const emptyState = document.getElementById("emptyState");
-const pagination = document.getElementById("pagination");
+const emptyState  = document.getElementById("emptyState");
+const pagination  = document.getElementById("pagination");
 const resultsMeta = document.getElementById("resultsMeta");
-const chipsRow = document.getElementById("chipsRow");
+const chipsRow    = document.getElementById("chipsRow");
 const searchInput = document.getElementById("searchInput");
 const searchClear = document.getElementById("searchClear");
-const sortSelect = document.getElementById("sortSelect");
+const sortSelect  = document.getElementById("sortSelect");
 const sourceSelect = document.getElementById("sourceSelect");
-const savedBtn = document.getElementById("savedBtn");
-const savedBadge = document.getElementById("savedBadge");
+const savedBtn    = document.getElementById("savedBtn");
+const savedBadge  = document.getElementById("savedBadge");
 const headerCount = document.getElementById("headerCount");
-const themeBtn = document.getElementById("themeBtn");
+const themeBtn    = document.getElementById("themeBtn");
 
-const currentTheme = ls.get("tnh_theme", "light");
-document.documentElement.dataset.theme = currentTheme;
-
+// ── THEME ──
+document.documentElement.dataset.theme = ls.get("tnh_theme", "light");
 themeBtn.addEventListener("click", () => {
-  const nextTheme = document.documentElement.dataset.theme === "dark" ? "light" : "dark";
-  document.documentElement.dataset.theme = nextTheme;
-  ls.set("tnh_theme", nextTheme);
+  const next = document.documentElement.dataset.theme === "dark" ? "light" : "dark";
+  document.documentElement.dataset.theme = next;
+  ls.set("tnh_theme", next);
 });
 
+// ── DATE ──
 document.getElementById("headerDate").textContent = new Date().toLocaleDateString("en-US", {
   weekday: "short", month: "short", day: "numeric", year: "numeric"
 });
 document.getElementById("footerYear").textContent = new Date().getFullYear();
 
+// ── SPLASH ──
 function updateSplash(percent, label) {
-  if (splashFill) splashFill.style.width = percent + "%";
+  if (splashFill)  splashFill.style.width = percent + "%";
   if (splashLabel) splashLabel.textContent = label;
 }
 
-// ── DOM REFS ──
-const splash = document.getElementById("splash");
-const splashFill = document.getElementById("splashFill");
-const splashLabel = document.getElementById("splashLabel");
-const newsGrid = document.getElementById("newsGrid");
-const skeletonGrid = document.getElementById("skeletonGrid");
-const emptyState = document.getElementById("emptyState");
-const pagination = document.getElementById("pagination");
-const resultsMeta = document.getElementById("resultsMeta");
-const chipsRow = document.getElementById("chipsRow");
-const searchInput = document.getElementById("searchInput");
-const searchClear = document.getElementById("searchClear");
-const sortSelect = document.getElementById("sortSelect");
-const sourceSelect = document.getElementById("sourceSelect");
-const savedBtn = document.getElementById("savedBtn");
-const savedBadge = document.getElementById("savedBadge");
-const headerCount = document.getElementById("headerCount");
-const themeBtn = document.getElementById("themeBtn");
-
-// ── THEME ──
-const savedTheme = localStorage.getItem("tnh_theme") || "dark";
-document.documentElement.dataset.theme = savedTheme;
-
-themeBtn.addEventListener("click", () => {
-  const next = document.documentElement.dataset.theme === "dark" ? "light" : "dark";
-  document.documentElement.dataset.theme = next;
-  localStorage.setItem("tnh_theme", next);
-});
-
-// ── DATE ──
-const today = new Date();
-document.getElementById("headerDate").textContent = today.toLocaleDateString("en-US", {
-  weekday: "short", month: "short", day: "numeric", year: "numeric"
-});
-document.getElementById("footerYear").textContent = today.getFullYear();
-
-// ── SPLASH ──
-function updateSplash(percent, label) {
-  splashFill.style.width = percent + "%";
-  splashLabel.textContent = label;
+// ── HELPERS ──
+function extractImage(item) {
+  // 1. thumbnail field (Wired, Engadget)
+  if (item.thumbnail && item.thumbnail.startsWith("http")) return item.thumbnail;
+  // 2. enclosure object (VentureBeat)
+  if (item.enclosure && item.enclosure.link && item.enclosure.link.startsWith("http")) return item.enclosure.link;
+  // 3. first <img> in description/content HTML
+  const html = item.content || item.description || "";
+  const match = html.match(/<img[^>]+src=["']([^"']+)["']/i);
+  if (match) return match[1];
+  return null;
 }
 
-// ── FETCH ──
+function normalizeItem(item, sourceName) {
+  return {
+    title:       item.title || "Untitled",
+    description: (item.description || item.content || "")
+                   .replace(/<[^>]+>/g, "").trim().slice(0, 200),
+    url:         item.link,
+    urlToImage:  extractImage(item),
+    publishedAt: item.pubDate,
+    source:      { name: sourceName }
+  };
+}
+
+// ── FETCH (parallel multi-feed) ──
 async function fetchNews() {
   skeletonGrid.classList.remove("hidden");
   newsGrid.classList.add("hidden");
-
-  updateSplash(20, "Connecting to Google News...");
+  updateSplash(10, "Loading tech news...");
 
   try {
-    updateSplash(50, "Fetching stories...");
-    const res = await fetch(API_URL);
+    const results = await Promise.allSettled(
+      RSS_FEEDS.map(feed =>
+        fetch(RSS2JSON + encodeURIComponent(feed.url))
+          .then(r => r.json())
+          .then(data => {
+            if (data.status !== "ok" || !Array.isArray(data.items)) return [];
+            return data.items
+              .filter(item => item.title && item.link)
+              .map(item => normalizeItem(item, feed.name));
+          })
+      )
+    );
 
-    updateSplash(75, "Parsing data...");
-    const data = await res.json();
+    updateSplash(80, "Sorting stories...");
 
-    if (data.status !== "ok" || !Array.isArray(data.items)) {
-      throw new Error("Invalid response from news feed");
-    }
+    // Merge all feeds, sort by date
+    allArticles = results
+      .filter(r => r.status === "fulfilled")
+      .flatMap(r => r.value)
+      .sort((a, b) => new Date(b.publishedAt || 0) - new Date(a.publishedAt || 0));
 
-    // Normalize rss2json items to the shape used by the rest of the app
-    allArticles = data.items
-      .filter(item => item.title && item.link)
-      .map(item => ({
-        title: item.title,
-        description: item.description
-          ? item.description.replace(/<[^>]+>/g, "").trim().slice(0, 200)
-          : "",
-        url: item.link,
-        urlToImage: item.thumbnail || item.enclosure?.link || null,
-        publishedAt: item.pubDate,
-        source: { name: item.author || "Google News" }
-      }));
+    if (allArticles.length === 0) throw new Error("No articles returned");
 
     populateSources();
     updateSavedBadge();
-
     updateSplash(100, "Ready");
+
     setTimeout(() => {
       splash.classList.add("hidden");
       skeletonGrid.classList.add("hidden");
@@ -153,14 +144,17 @@ async function fetchNews() {
       newsGrid.classList.remove("hidden");
       newsGrid.innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:40px;">
         <h3 style="font-size:1.5rem;margin-bottom:10px;color:var(--primary);">Failed to fetch news</h3>
-        <p style="margin-bottom:20px;">There was an error loading the latest technology news. Please try again later.</p>
+        <p style="margin-bottom:20px;">Please check your connection and try again.</p>
         <button onclick="fetchNews()" style="padding:10px 24px;background:var(--primary);color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:1rem;">Retry</button>
       </div>`;
-    }, 1000);
+    }, 800);
   }
 }
 
+// ── SOURCES ──
 function populateSources() {
+  // Remove old dynamic options
+  while (sourceSelect.options.length > 1) sourceSelect.remove(1);
   const sources = [...new Set(allArticles.map(a => a.source?.name).filter(Boolean))].sort();
   sources.forEach(src => {
     const opt = document.createElement("option");
@@ -170,6 +164,7 @@ function populateSources() {
   });
 }
 
+// ── EVENTS ──
 let searchTimeout;
 searchInput.addEventListener("input", (e) => {
   clearTimeout(searchTimeout);
@@ -189,18 +184,8 @@ searchClear.addEventListener("click", () => {
   render();
 });
 
-sortSelect.addEventListener("change", (e) => {
-  sortMode = e.target.value;
-  currentPage = 1;
-  render();
-});
-
-sourceSelect.addEventListener("change", (e) => {
-  sourceFilter = e.target.value;
-  currentPage = 1;
-  render();
-});
-
+sortSelect.addEventListener("change", (e) => { sortMode = e.target.value; currentPage = 1; render(); });
+sourceSelect.addEventListener("change", (e) => { sourceFilter = e.target.value; currentPage = 1; render(); });
 savedBtn.addEventListener("click", () => {
   showSavedOnly = !showSavedOnly;
   savedBtn.classList.toggle("active", showSavedOnly);
@@ -208,6 +193,7 @@ savedBtn.addEventListener("click", () => {
   render();
 });
 
+// ── FILTER & SORT ──
 function getFilteredArticles() {
   return allArticles
     .filter(a => {
@@ -228,18 +214,17 @@ function getFilteredArticles() {
     });
 }
 
+// ── RENDER ──
 function render() {
   const filtered = getFilteredArticles();
   const total = filtered.length;
   const pages = Math.ceil(total / ARTICLES_PER_PAGE) || 1;
-
   if (currentPage > pages) currentPage = pages;
 
   const start = (currentPage - 1) * ARTICLES_PER_PAGE;
   const pageItems = filtered.slice(start, start + ARTICLES_PER_PAGE);
 
   headerCount.textContent = `${total} stor${total === 1 ? "y" : "ies"}`;
-
   renderMeta(total, pages);
   renderChips();
 
@@ -252,20 +237,13 @@ function render() {
 
   emptyState.classList.add("hidden");
   newsGrid.innerHTML = "";
-
-  pageItems.forEach((article) => {
-    newsGrid.appendChild(buildCard(article));
-  });
-
+  pageItems.forEach(article => newsGrid.appendChild(buildCard(article)));
   renderPagination(pages);
   newsGrid.scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
 function renderMeta(total, pages) {
-  if (total === 0) {
-    resultsMeta.innerHTML = "";
-    return;
-  }
+  if (total === 0) { resultsMeta.innerHTML = ""; return; }
   const start = (currentPage - 1) * ARTICLES_PER_PAGE + 1;
   const end = Math.min(currentPage * ARTICLES_PER_PAGE, total);
   resultsMeta.innerHTML = `
@@ -275,35 +253,18 @@ function renderMeta(total, pages) {
 }
 
 function renderChips() {
-  const activeFilters = [];
-
-  if (searchQuery) {
-    activeFilters.push({
-      label: `"${searchQuery}"`, clear: () => {
-        searchInput.value = ""; searchQuery = ""; searchClear.classList.remove("visible");
-      }
-    });
-  }
-  if (sourceFilter !== "all") {
-    activeFilters.push({ label: sourceFilter, clear: () => { sourceFilter = "all"; sourceSelect.value = "all"; } });
-  }
-  if (showSavedOnly) {
-    activeFilters.push({ label: "Saved only", clear: () => { showSavedOnly = false; savedBtn.classList.remove("active"); } });
-  }
-  if (sortMode !== "default") {
-    activeFilters.push({ label: sortSelect.options[sortSelect.selectedIndex]?.text, clear: () => { sortMode = "default"; sortSelect.value = "default"; } });
-  }
+  const active = [];
+  if (searchQuery) active.push({ label: `"${searchQuery}"`, clear: () => { searchInput.value = ""; searchQuery = ""; searchClear.classList.remove("visible"); } });
+  if (sourceFilter !== "all") active.push({ label: sourceFilter, clear: () => { sourceFilter = "all"; sourceSelect.value = "all"; } });
+  if (showSavedOnly) active.push({ label: "Saved only", clear: () => { showSavedOnly = false; savedBtn.classList.remove("active"); } });
+  if (sortMode !== "default") active.push({ label: sortSelect.options[sortSelect.selectedIndex]?.text, clear: () => { sortMode = "default"; sortSelect.value = "default"; } });
 
   chipsRow.innerHTML = "";
-  activeFilters.forEach(filter => {
+  active.forEach(f => {
     const chip = document.createElement("span");
     chip.className = "chip";
-    chip.innerHTML = `${filter.label} <button class="chip-x">✕</button>`;
-    chip.querySelector(".chip-x").addEventListener("click", () => {
-      filter.clear();
-      currentPage = 1;
-      render();
-    });
+    chip.innerHTML = `${f.label} <button class="chip-x">✕</button>`;
+    chip.querySelector(".chip-x").addEventListener("click", () => { f.clear(); currentPage = 1; render(); });
     chipsRow.appendChild(chip);
   });
 }
@@ -316,15 +277,15 @@ function buildCard(article) {
     ? new Date(article.publishedAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
     : "";
 
-  const imgFallback = '<div style="width:100%;height:100%;background:#e6dac3;display:flex;align-items:center;justify-content:center;color:#8a9a5b;font-size:0.8rem;text-transform:uppercase;">No Image</div>';
+  const imgFallback = `<div style="width:100%;height:100%;background:linear-gradient(135deg,#e6dac3,#d4c9b0);display:flex;flex-direction:column;align-items:center;justify-content:center;color:#8a9a5b;font-size:2rem;gap:8px;">📰<span style="font-size:0.7rem;text-transform:uppercase;letter-spacing:1px;">${article.source?.name || "News"}</span></div>`;
   const imgHTML = article.urlToImage
-    ? `<img src="${article.urlToImage}" alt="${article.title}" loading="lazy" onerror="this.parentElement.innerHTML='${imgFallback}'">`
+    ? `<img src="${article.urlToImage}" alt="${article.title.replace(/"/g,"'")}" loading="lazy" onerror="this.parentElement.innerHTML='${imgFallback.replace(/'/g,"\\'")}';">`
     : imgFallback;
 
   card.innerHTML = `
     <div class="card-img-wrap">
       ${imgHTML}
-      <span class="src-badge">${article.source?.name || "Unknown"}</span>
+      <span class="src-badge">${article.source?.name || "News"}</span>
     </div>
     <div class="card-body">
       <h2 class="card-title">${article.title}</h2>
@@ -341,10 +302,7 @@ function buildCard(article) {
     </div>
   `;
 
-  card.querySelector(".fav-btn").addEventListener("click", (e) => {
-    toggleFav(article.url, e.currentTarget);
-  });
-
+  card.querySelector(".fav-btn").addEventListener("click", (e) => toggleFav(article.url, e.currentTarget));
   return card;
 }
 
@@ -360,15 +318,10 @@ function toggleFav(url, btn) {
   }
   ls.set("tnh_favorites", favorites);
   updateSavedBadge();
-
-  if (showSavedOnly) {
-    render();
-  }
+  if (showSavedOnly) render();
 }
 
-function updateSavedBadge() {
-  savedBadge.textContent = favorites.length;
-}
+function updateSavedBadge() { savedBadge.textContent = favorites.length; }
 
 function renderPagination(pages) {
   pagination.innerHTML = "";
@@ -382,29 +335,15 @@ function renderPagination(pages) {
   pagination.appendChild(prevBtn);
 
   let startPage = Math.max(1, currentPage - 2);
-  let endPage = Math.min(pages, currentPage + 2);
+  let endPage   = Math.min(pages, currentPage + 2);
 
   if (startPage > 1) {
     pagination.appendChild(createPageBtn(1));
-    if (startPage > 2) {
-      const dots = document.createElement("span");
-      dots.className = "pg-dots";
-      dots.textContent = "...";
-      pagination.appendChild(dots);
-    }
+    if (startPage > 2) { const d = document.createElement("span"); d.className = "pg-dots"; d.textContent = "..."; pagination.appendChild(d); }
   }
-
-  for (let i = startPage; i <= endPage; i++) {
-    pagination.appendChild(createPageBtn(i));
-  }
-
+  for (let i = startPage; i <= endPage; i++) pagination.appendChild(createPageBtn(i));
   if (endPage < pages) {
-    if (endPage < pages - 1) {
-      const dots = document.createElement("span");
-      dots.className = "pg-dots";
-      dots.textContent = "...";
-      pagination.appendChild(dots);
-    }
+    if (endPage < pages - 1) { const d = document.createElement("span"); d.className = "pg-dots"; d.textContent = "..."; pagination.appendChild(d); }
     pagination.appendChild(createPageBtn(pages));
   }
 
@@ -420,25 +359,13 @@ function createPageBtn(pageNum) {
   const btn = document.createElement("button");
   btn.className = `pg-btn ${pageNum === currentPage ? "active" : ""}`;
   btn.textContent = pageNum;
-  btn.addEventListener("click", () => {
-    currentPage = pageNum;
-    render();
-  });
+  btn.addEventListener("click", () => { currentPage = pageNum; render(); });
   return btn;
 }
 
 window.resetAll = () => {
-  searchInput.value = "";
-  searchQuery = "";
-  sortMode = "default";
-  sourceFilter = "all";
-  showSavedOnly = false;
-  currentPage = 1;
-
-  searchClear.classList.remove("visible");
-  sortSelect.value = "default";
-  sourceSelect.value = "all";
-  savedBtn.classList.remove("active");
+  searchInput.value = ""; searchQuery = ""; sortMode = "default"; sourceFilter = "all"; showSavedOnly = false; currentPage = 1;
+  searchClear.classList.remove("visible"); sortSelect.value = "default"; sourceSelect.value = "all"; savedBtn.classList.remove("active");
   render();
 };
 
